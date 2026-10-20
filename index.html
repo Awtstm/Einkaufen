@@ -1,0 +1,430 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Einkaufen</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Einkaufen">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#f2f2f7" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" type="image/png" href="icon-192.png">
+<link rel="manifest" href="manifest.json">
+<style>
+/* Layout: iOS grouped inset list — large title, segmented store filter, one rounded list card */
+:root {
+  --bg: #f2f2f7;
+  --card: #ffffff;
+  --fg: #1c1c1e;
+  --muted: #8a8a90;
+  --sep: rgba(60, 60, 67, 0.16);
+  --accent: #d69e00;          /* Notes-gelb */
+  --seg: rgba(118, 118, 128, 0.12);
+  --seg-on: #ffffff;
+  --penny: #e0901a;
+  --rewe: #d93a2f;
+  --both: #6d6d78;
+  --danger: #ff3b30;
+  --font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --font-display: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", Helvetica, Arial, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #000000; --card: #1c1c1e; --fg: #f2f2f7; --muted: #8e8e95;
+    --sep: rgba(84, 84, 88, 0.6); --accent: #f5c518; --seg: rgba(118, 118, 128, 0.24);
+    --seg-on: #636366; --penny: #f0a43a; --rewe: #ff5a4d; --both: #a1a1aa; --danger: #ff453a;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #000000; --card: #1c1c1e; --fg: #f2f2f7; --muted: #8e8e95;
+  --sep: rgba(84, 84, 88, 0.6); --accent: #f5c518; --seg: rgba(118, 118, 128, 0.24);
+  --seg-on: #636366; --penny: #f0a43a; --rewe: #ff5a4d; --both: #a1a1aa; --danger: #ff453a;
+  color-scheme: dark;
+}
+html, body { background: var(--bg); margin: 0; }
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body {
+  color: var(--fg);
+  font-family: var(--font);
+  font-size: 17px;
+  -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
+}
+.wrap {
+  max-width: 560px;
+  margin: 0 auto;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-top: calc(12px + env(safe-area-inset-top, 0px));
+  padding-bottom: calc(48px + env(safe-area-inset-bottom, 0px));
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+button { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; }
+button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.topbar { display: flex; justify-content: flex-end; min-height: 22px; }
+.link { color: var(--accent); font-size: 17px; }
+.link[disabled] { opacity: .35; }
+
+.head { display: flex; flex-direction: column; gap: 2px; }
+h1 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 34px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  line-height: 1.15;
+}
+.sub { color: var(--muted); font-size: 15px; font-variant-numeric: tabular-nums; }
+
+/* segmented control */
+.seg {
+  display: flex;
+  background: var(--seg);
+  border-radius: 9px;
+  padding: 2px;
+}
+.seg button {
+  flex: 1 1 0;
+  min-width: 0;
+  padding: 7px 4px;
+  border-radius: 7px;
+  font-size: 14px;
+  font-weight: 500;
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+  transition: background .18s ease;
+}
+.seg button[aria-pressed="true"] {
+  background: var(--seg-on);
+  font-weight: 600;
+  box-shadow: 0 1px 3px rgba(0,0,0,.12), 0 1px 1px rgba(0,0,0,.04);
+}
+.dot { width: 8px; height: 8px; border-radius: 50%; flex: none; }
+.dot.p { background: var(--penny); }
+.dot.r { background: var(--rewe); }
+
+/* list card */
+.list {
+  background: var(--card);
+  border-radius: 12px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+.row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 48px;
+  padding: 6px 12px 6px 14px;
+  position: relative;
+}
+.row + .row::before, .row + .addrow::before, .donehead + .row::before {
+  content: "";
+  position: absolute;
+  top: 0; right: 0;
+  left: 50px;
+  height: 1px;
+  transform: scaleY(.5);
+  background: var(--sep);
+}
+.check {
+  width: 24px; height: 24px; flex: none;
+  border-radius: 50%;
+  border: 1.5px solid var(--muted);
+  display: grid; place-items: center;
+}
+.row.done .check { background: var(--accent); border-color: var(--accent); }
+.check svg { width: 13px; height: 13px; opacity: 0; }
+.row.done .check svg { opacity: 1; }
+.name {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  line-height: 1.3;
+  padding-block: 6px;
+}
+.row.done .name { color: var(--muted); text-decoration: line-through; }
+.minus {
+  width: 22px; height: 22px; flex: none;
+  border-radius: 50%;
+  background: var(--danger);
+  display: grid; place-items: center;
+}
+.minus::after { content: ""; width: 10px; height: 2px; border-radius: 1px; background: #fff; }
+
+/* per-item store toggle: P | P+R | R */
+.tog {
+  flex: none;
+  display: flex;
+  background: var(--seg);
+  border-radius: 8px;
+  padding: 2px;
+}
+.tog button {
+  min-width: 34px;
+  padding: 4px 6px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  color: var(--muted);
+}
+.tog button[aria-pressed="true"] { color: #fff; }
+.tog button.p[aria-pressed="true"] { background: var(--penny); }
+.tog button.b[aria-pressed="true"] { background: var(--both); }
+.tog button.r[aria-pressed="true"] { background: var(--rewe); }
+.row.done .tog { opacity: .45; }
+
+/* add row */
+.addrow { position: relative; display: flex; align-items: center; gap: 12px; min-height: 48px; padding: 6px 12px 6px 14px; }
+.addbtn { display: flex; align-items: center; gap: 12px; color: var(--accent); width: 100%; text-align: left; min-height: 36px; }
+.plus {
+  width: 24px; height: 24px; flex: none; border-radius: 50%;
+  background: var(--accent); display: grid; place-items: center;
+}
+.plus svg { width: 12px; height: 12px; }
+.addrow input {
+  flex: 1 1 auto; min-width: 0;
+  font: inherit; color: var(--fg);
+  background: transparent; border: 0; padding: 6px 0;
+  outline: none;
+}
+.addrow input::placeholder { color: var(--muted); }
+
+.donehead {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 18px 14px 6px;
+  font-size: 13px; color: var(--muted);
+  text-transform: uppercase; letter-spacing: 0.06em;
+  position: relative;
+}
+.donehead button { color: var(--accent); text-transform: none; letter-spacing: 0; font-size: 15px; }
+.empty { padding: 14px 14px 4px 50px; color: var(--muted); font-size: 15px; }
+.foot { color: var(--muted); font-size: 13px; text-align: center; }
+
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="topbar"><button class="link" id="editBtn" type="button">Bearbeiten</button></div>
+  <div class="head">
+    <h1>Einkaufen</h1>
+    <div class="sub" id="sub">&nbsp;</div>
+  </div>
+  <div class="seg" role="group" aria-label="Laden">
+    <button type="button" id="f-all" data-f="all" aria-pressed="true">Alle</button>
+    <button type="button" id="f-p" data-f="p" aria-pressed="false"><span class="dot p"></span>Penny</button>
+    <button type="button" id="f-r" data-f="r" aria-pressed="false"><span class="dot r"></span>Rewe</button>
+  </div>
+  <div class="list" id="list"></div>
+  <div class="foot" id="foot"></div>
+</div>
+
+<script>
+(function () {
+  var CHECK = '<svg viewBox="0 0 14 14" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 7.4l3 3 6-6.6"/></svg>';
+  var PLUS = '<svg viewBox="0 0 12 12" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><path d="M6 1.5v9M1.5 6h9"/></svg>';
+  var LS_KEY = 'einkauf-items-v1';
+  var FILTER_KEY = 'einkauf-filter';
+
+  var items = {};          // id -> {name, store, done, created, doneAt}
+  var filter = 'all';
+  var editing = false;
+  var adding = false;
+
+  var listEl = document.getElementById('list');
+  var subEl = document.getElementById('sub');
+  var footEl = document.getElementById('foot');
+  var editBtn = document.getElementById('editBtn');
+
+  try { var f = localStorage.getItem(FILTER_KEY); if (f) filter = f; } catch (e) {}
+
+  function newId() {
+    return 'i' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+  }
+  function saveLocal() {
+    try { localStorage.setItem(LS_KEY, JSON.stringify(items)); } catch (e) {}
+  }
+  function loadLocal() {
+    try { var raw = localStorage.getItem(LS_KEY); if (raw) items = JSON.parse(raw) || {}; } catch (e) {}
+  }
+
+  function write(id, data) {
+    saveLocal();
+  }
+
+  function visible(it) {
+    if (filter === 'all') return true;
+    return it.store === filter || it.store === 'b';
+  }
+
+  function esc(s) {
+    return String(s).replace(/[&<>"]/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c];
+    });
+  }
+
+  function rowHtml(id, it) {
+    var lead = editing
+      ? '<button type="button" class="minus" data-act="del" aria-label="' + esc(it.name) + ' löschen"></button>'
+      : '<button type="button" class="check" data-act="check" aria-label="' + esc(it.name) + (it.done ? ' nicht abgehakt' : ' abhaken') + '">' + CHECK + '</button>';
+    function opt(k, label) {
+      return '<button type="button" class="' + k + '" data-act="store" data-store="' + k + '" aria-pressed="' + (it.store === k) + '">' + label + '</button>';
+    }
+    return '<div class="row' + (it.done ? ' done' : '') + '" data-id="' + id + '">' + lead +
+      '<div class="name">' + esc(it.name) + '</div>' +
+      '<div class="tog" role="group" aria-label="Laden für ' + esc(it.name) + '">' +
+      opt('p', 'P') + opt('b', 'P+R') + opt('r', 'R') + '</div></div>';
+  }
+
+  function render() {
+    var ids = Object.keys(items).filter(function (id) { return visible(items[id]); });
+    var open = ids.filter(function (id) { return !items[id].done; })
+      .sort(function (a, b) { return items[a].created - items[b].created; });
+    var done = ids.filter(function (id) { return items[id].done; })
+      .sort(function (a, b) { return (items[b].doneAt || 0) - (items[a].doneAt || 0); });
+
+    var html = '';
+    open.forEach(function (id) { html += rowHtml(id, items[id]); });
+    if (!open.length && !adding) {
+      html += '<div class="empty">' + (filter === 'all' ? 'Liste ist leer.' : 'Nichts für ' + (filter === 'p' ? 'Penny' : 'Rewe') + '.') + '</div>';
+    }
+    html += '<div class="addrow">' + (adding
+      ? '<span class="plus">' + PLUS + '</span><input id="newItem" type="text" enterkeyhint="done" autocomplete="off" autocapitalize="sentences" placeholder="Neues Produkt">'
+      : '<button type="button" class="addbtn" id="addBtn"><span class="plus">' + PLUS + '</span>Neues Produkt hinzufügen</button>') + '</div>';
+
+    if (done.length) {
+      html += '<div class="donehead"><span>Erledigt · ' + done.length + '</span><button type="button" id="clearDone">Erledigte löschen</button></div>';
+      done.forEach(function (id) { html += rowHtml(id, items[id]); });
+    }
+
+    var prevVal = '';
+    var inp = document.getElementById('newItem');
+    if (inp) prevVal = inp.value;
+    listEl.innerHTML = html;
+
+    var label = filter === 'all' ? 'insgesamt' : (filter === 'p' ? 'bei Penny' : 'bei Rewe');
+    subEl.textContent = open.length + (open.length === 1 ? ' Produkt ' : ' Produkte ') + label;
+    editBtn.textContent = editing ? 'Fertig' : 'Bearbeiten';
+    editBtn.style.fontWeight = editing ? '600' : '400';
+
+    ['all', 'p', 'r'].forEach(function (k) {
+      document.getElementById('f-' + k).setAttribute('aria-pressed', String(filter === k));
+    });
+
+    if (adding) {
+      var ni = document.getElementById('newItem');
+      ni.value = prevVal;
+      ni.focus();
+    }
+  }
+
+  function addItem(name) {
+    name = name.trim();
+    if (!name) return;
+    // already on the list as done? bring it back instead of duplicating
+    var lower = name.toLowerCase();
+    var existing = Object.keys(items).filter(function (id) { return items[id].name.toLowerCase() === lower; })[0];
+    if (existing) {
+      var it = items[existing];
+      if (it.done) {
+        items[existing] = { name: it.name, store: it.store, done: false, created: Date.now(), doneAt: 0 };
+        write(existing, items[existing]);
+      }
+      return;
+    }
+    var id = newId();
+    items[id] = { name: name, store: 'b', done: false, created: Date.now(), doneAt: 0 };
+    write(id, items[id]);
+  }
+
+  listEl.addEventListener('click', function (e) {
+    var t = e.target.closest ? e.target.closest('button') : null;
+    if (!t) return;
+    if (t.id === 'addBtn') { adding = true; editing = false; render(); return; }
+    if (t.id === 'clearDone') {
+      Object.keys(items).forEach(function (id) {
+        if (items[id].done && visible(items[id])) { delete items[id]; write(id, null); }
+      });
+      render(); return;
+    }
+    var row = t.closest('.row');
+    if (!row) return;
+    var id = row.getAttribute('data-id');
+    var it = items[id];
+    if (!it) return;
+    var act = t.getAttribute('data-act');
+    var next = { name: it.name, store: it.store, done: it.done, created: it.created, doneAt: it.doneAt || 0 };
+    if (act === 'check') {
+      next.done = !it.done;
+      next.doneAt = next.done ? Date.now() : 0;
+    } else if (act === 'store') {
+      next.store = t.getAttribute('data-store');
+      if (next.store === it.store) return;
+    } else if (act === 'del') {
+      delete items[id]; write(id, null); render(); return;
+    }
+    items[id] = next;
+    write(id, next);
+    render();
+  });
+
+  listEl.addEventListener('keydown', function (e) {
+    if (e.target.id !== 'newItem') return;
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      var v = e.target.value;
+      e.target.value = '';
+      if (!v.trim()) { adding = false; render(); return; }
+      addItem(v);
+      render();
+    } else if (e.key === 'Escape') {
+      adding = false; render();
+    }
+  });
+
+  listEl.addEventListener('focusout', function (e) {
+    if (e.target.id !== 'newItem') return;
+    var v = e.target.value;
+    setTimeout(function () {
+      if (document.activeElement && document.activeElement.id === 'newItem') return;
+      if (v.trim()) addItem(v);
+      adding = false;
+      render();
+    }, 120);
+  });
+
+  document.querySelector('.seg').addEventListener('click', function (e) {
+    var b = e.target.closest ? e.target.closest('button') : null;
+    if (!b) return;
+    filter = b.getAttribute('data-f');
+    try { localStorage.setItem(FILTER_KEY, filter); } catch (er) {}
+    render();
+  });
+
+  editBtn.addEventListener('click', function () {
+    editing = !editing;
+    adding = false;
+    render();
+  });
+
+  // start: local copy first, then the synced store when available
+  loadLocal();
+  render();
+
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', function () { navigator.serviceWorker.register('sw.js').catch(function () {}); });
+  }
+})();
+</script>
+</body>
+</html>
